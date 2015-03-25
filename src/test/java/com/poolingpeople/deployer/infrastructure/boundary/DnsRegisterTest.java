@@ -12,4 +12,10 @@ public class DnsRegisterTest {
     public void testGetInstances() throws Exception {
         cut.getInstances();
     }
+
+    @Test
+    public void testGetUpdateDndRecords(){
+        cut.getUpdateDndRecords();
+    }
+
 }

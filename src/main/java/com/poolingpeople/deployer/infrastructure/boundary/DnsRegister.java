@@ -9,10 +9,14 @@ import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.Tag;
+import com.amazonaws.services.route53.AmazonRoute53;
+import com.amazonaws.services.route53.AmazonRoute53Client;
+import com.amazonaws.services.route53.model.*;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -37,17 +41,34 @@ public class DnsRegister {
                 instance -> instance.getTags().stream()
                         .filter(tag -> !tag.getKey().equals("name"))
                         .map(tag -> tag.getValue()).findFirst().get()).forEach(System.out::println);
-//                        .findFirst())
-
-//                .collect(Collectors.toList()).stream().forEach(System.out::println);
 
         return null;
     }
 
-    private void something(Collection<String> s){
+    public void getUpdateDndRecords(){
+        loadAWSCredentials();
+        AmazonRoute53 route53 = new AmazonRoute53Client(new BasicAWSCredentials(accessKey, secretKey));
 
-        System.out.println(s);
 
+
+        ResourceRecordSet resourceRecordSet =  new ResourceRecordSet();
+        resourceRecordSet
+                .withName("somename.intern.poolingpeople.com")
+                .withRegion(ResourceRecordSetRegion.EuWest1)
+                .withType(RRType.A).with
+
+
+        ;
+
+        Change change = new Change("CREATE", resourceRecordSet);
+        ChangeResourceRecordSetsRequest changeResourceRecordSetsRequest =
+                new ChangeResourceRecordSetsRequest()
+                .withChangeBatch(new ChangeBatch(Arrays.asList(change)))
+                .withHostedZoneId("Z2JU9P5RO02LI8");
+
+
+
+        route53.changeResourceRecordSets(changeResourceRecordSetsRequest);
     }
 
 
