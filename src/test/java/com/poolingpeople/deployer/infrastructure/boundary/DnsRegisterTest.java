@@ -2,8 +2,6 @@ package com.poolingpeople.deployer.infrastructure.boundary;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
-
 public class DnsRegisterTest {
 
     DnsRegister cut = new DnsRegister();
@@ -14,8 +12,13 @@ public class DnsRegisterTest {
     }
 
     @Test
-    public void testGetUpdateDndRecords(){
-        cut.getUpdateDndRecords();
+    public void testCreateDndRecords(){
+        cut.createDnsRecords();
+    }
+
+    @Test
+    public void testUpdateDndRecords(){
+        cut.updateDnsRecord();
     }
 
 }

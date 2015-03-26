@@ -39,32 +39,52 @@ public class DnsRegister {
 
         instances.stream().map(
                 instance -> instance.getTags().stream()
-                        .filter(tag -> !tag.getKey().equals("name"))
+                        .filter((Tag)tag -> !tag.getKey().equals("name"))
                         .map(tag -> tag.getValue()).findFirst().get()).forEach(System.out::println);
 
         return null;
     }
 
-    public void getUpdateDndRecords(){
+    public void createDnsRecords(){
         loadAWSCredentials();
         AmazonRoute53 route53 = new AmazonRoute53Client(new BasicAWSCredentials(accessKey, secretKey));
 
-
-
-        ResourceRecordSet resourceRecordSet =  new ResourceRecordSet();
-        resourceRecordSet
-                .withName("somename.intern.poolingpeople.com")
-                .withRegion(ResourceRecordSetRegion.EuWest1)
-                .withType(RRType.A).with
-
-
-        ;
-
-        Change change = new Change("CREATE", resourceRecordSet);
         ChangeResourceRecordSetsRequest changeResourceRecordSetsRequest =
-                new ChangeResourceRecordSetsRequest()
-                .withChangeBatch(new ChangeBatch(Arrays.asList(change)))
-                .withHostedZoneId("Z2JU9P5RO02LI8");
+                new ChangeResourceRecordSetsRequest().withChangeBatch(
+                        new ChangeBatch(Arrays.asList(
+                                new Change()
+                                        .withAction("CREATE")
+                                        .withResourceRecordSet(new ResourceRecordSet()
+                                                .withName("somename.intern.poolingpeople.com.")
+                                                .withTTL(10L)
+                                                .withType(RRType.A)
+                                                .withResourceRecords(new ResourceRecord().withValue("192.168.10.12")))                        ))
+                                .withComment("my first test"))
+                        .withHostedZoneId("Z2JU9P5RO02LI8")
+                ;
+
+
+
+        route53.changeResourceRecordSets(changeResourceRecordSetsRequest);
+    }
+
+    public void updateDnsRecord(){
+        loadAWSCredentials();
+        AmazonRoute53 route53 = new AmazonRoute53Client(new BasicAWSCredentials(accessKey, secretKey));
+
+        ChangeResourceRecordSetsRequest changeResourceRecordSetsRequest =
+                new ChangeResourceRecordSetsRequest().withChangeBatch(
+                        new ChangeBatch(Arrays.asList(
+                                new Change()
+                                        .withAction("UPSERT")
+                                        .withResourceRecordSet(new ResourceRecordSet()
+                                                .withName("somename.intern.poolingpeople.com.")
+                                                .withTTL(10L)
+                                                .withType(RRType.A)
+                                                .withResourceRecords(new ResourceRecord().withValue("192.168.10.120")))                        ))
+                                .withComment("my first test"))
+                        .withHostedZoneId("Z2JU9P5RO02LI8")
+                ;
 
 
 
