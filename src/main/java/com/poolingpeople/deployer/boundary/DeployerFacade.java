@@ -175,6 +175,9 @@ public class DeployerFacade implements Serializable {
 
         dockerApi.buildImage(clusterConfig.getNeo4jId(), neo4jDockerPackage.getBytes());
 
+        dockerApi.listImage().contains(clusterConfig.getNeo4jImageId());
+
+
         builder = new CreateContainerBodyWriter();
         builder.setImage(clusterConfig.getNeo4jId())
                 .buildExposedPorts()

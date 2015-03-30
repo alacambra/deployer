@@ -106,6 +106,10 @@ public class ClusterConfig {
         return getPortPrefix() + clusterSeparator + "neo4j" + clusterSeparator + getDbScenario() + clusterSeparator + getConcretDomain() + clusterSeparator + getServerDomain();
     }
 
+    public String getNeo4jImageId() {
+        return "neo4j" + clusterSeparator + getDbScenario();
+    }
+
     public ClusterConfig setNeo4jId(String neo4jId) {
         this.neo4jId = neo4jId;
         return this;
@@ -114,6 +118,10 @@ public class ClusterConfig {
     public String getWildflyId() {
         return getPortPrefix() + clusterSeparator + "wf" + clusterSeparator
                 + getAppVersion() + clusterSeparator + getConcretDomain() + clusterSeparator + getServerDomain();
+    }
+
+    public String getWildflyImageId() {
+        return "wf" + clusterSeparator + getAppVersion() + clusterSeparator;
     }
 
     public ClusterConfig setWildflyId(String wildflyId) {
