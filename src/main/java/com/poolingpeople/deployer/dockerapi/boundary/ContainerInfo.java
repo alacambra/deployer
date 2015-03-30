@@ -103,7 +103,7 @@ public class ContainerInfo {
 
     public int getCluster() {
         try {
-            return Integer.parseInt(getImage().split(ClusterConfig.clusterSeparator)[0]);
+            return Integer.parseInt(getValidName().split(ClusterConfig.clusterSeparator)[0]);
         } catch (NumberFormatException e) {
             //e.printStackTrace();
             return -1;
@@ -120,13 +120,17 @@ public class ContainerInfo {
 
     public String getDomainLink() {
         try {
-            String[] parts = getImage().split(ClusterConfig.clusterSeparator);
+            String[] parts = getValidName().split(ClusterConfig.clusterSeparator);
             String subdomain = parts[3];
             String host = parts[4].split(":")[0];
             return subdomain + "." + host;
         } catch (ArrayIndexOutOfBoundsException e) {
             return "";
         }
+    }
+
+    String getValidName(){
+        return getNames().iterator().next().substring(1);
     }
 
     @Override
