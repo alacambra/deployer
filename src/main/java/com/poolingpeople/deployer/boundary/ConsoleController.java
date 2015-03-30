@@ -67,9 +67,9 @@ public class ConsoleController{
         return api.listContainers().stream().map(c -> c.toString()).collect(Collectors.joining("\r"));
     }
 
-    public String getImages() {
-        return api.listImage();
-    }
+//    public String getImages() {
+//        return api.listImage();
+//    }
 
     public void reloadProxy(){
         facade.createProxy();

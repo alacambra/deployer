@@ -7,11 +7,12 @@ import javax.json.JsonObject;
 import javax.json.JsonString;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by alacambra on 30.03.15.
  */
-public class ContainerImage {
+public class DockerImage {
 
     Long created;
     String id;
@@ -20,10 +21,10 @@ public class ContainerImage {
     Long size;
     Long virtualSize;
 
-    public ContainerImage() {
+    public DockerImage() {
     }
 
-    public ContainerImage(JsonObject image) {
+    public DockerImage(JsonObject image) {
 
 
         created = image.getJsonNumber("Created").longValue();
@@ -39,10 +40,14 @@ public class ContainerImage {
 
     }
 
-    public class RepoTag{
+    public static class RepoTag{
 
         public RepoTag(String name) {
             this.name = name;
+        }
+
+        public String getName() {
+            return name;
         }
 
         String name;
@@ -94,5 +99,11 @@ public class ContainerImage {
 
     public void setVirtualSize(Long virtualSize) {
         this.virtualSize = virtualSize;
+    }
+
+    @Override
+    public String toString() {
+
+        return repoTags.stream().map(tag -> tag.name).collect(Collectors.joining(";"));
     }
 }

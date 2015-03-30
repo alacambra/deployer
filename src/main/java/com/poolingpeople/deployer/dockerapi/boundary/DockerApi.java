@@ -1,9 +1,9 @@
 package com.poolingpeople.deployer.dockerapi.boundary;
 
 import javax.annotation.PostConstruct;
-import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import javax.json.Json;
+import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonString;
 import javax.ws.rs.client.Client;
@@ -14,7 +14,9 @@ import javax.ws.rs.core.Response;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Logger;
 
 import static javax.ws.rs.client.Entity.entity;
@@ -88,7 +90,7 @@ public class DockerApi implements Serializable{
 
     }
 
-    public String listImage(){
+    public List<DockerImage> listImage(){
 
         String url = endPoint.getURI() + "/images/json?all=0";
         Client client = ClientBuilder.newClient();
@@ -100,8 +102,13 @@ public class DockerApi implements Serializable{
                 .get();
 
         checkStatusResponseCode(response.getStatus());
-        String r = response.readEntity(String.class);
-        return r;
+        InputStream r = response.readEntity(InputStream.class);
+        JsonArray images = (JsonArray) Json.createReader(r).readArray();
+
+        List<DockerImage> imagesArr = new ArrayList<>();
+        images.stream().forEach(img -> imagesArr.add(new DockerImage((JsonObject) img )));
+
+        return imagesArr;
 
     }
 

@@ -5,10 +5,7 @@ import com.poolingpeople.deployer.control.ApplicationDockerPackage;
 import com.poolingpeople.deployer.control.ClusterConfigProvider;
 import com.poolingpeople.deployer.control.Neo4jDockerPackage;
 import com.poolingpeople.deployer.control.ProxyDockerPackage;
-import com.poolingpeople.deployer.dockerapi.boundary.ContainerNetworkSettingsReader;
-import com.poolingpeople.deployer.dockerapi.boundary.CreateContainerBodyWriter;
-import com.poolingpeople.deployer.dockerapi.boundary.DockerApi;
-import com.poolingpeople.deployer.dockerapi.boundary.DockerEndPoint;
+import com.poolingpeople.deployer.dockerapi.boundary.*;
 import com.poolingpeople.deployer.entity.ClusterConfig;
 import com.poolingpeople.deployer.scenario.boundary.DbSnapshot;
 
@@ -18,6 +15,7 @@ import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.util.*;
 import java.util.logging.Logger;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 /**
@@ -173,13 +171,12 @@ public class DeployerFacade implements Serializable {
         neo4jDockerPackage.setClusterConfig(clusterConfig);
         neo4jDockerPackage.prepareTarStream();
 
-        dockerApi.buildImage(clusterConfig.getNeo4jId(), neo4jDockerPackage.getBytes());
-
-        dockerApi.listImage().contains(clusterConfig.getNeo4jImageId());
-
+        if(!imageExists(clusterConfig.getNeo4jImageId() + ":latest")) {
+            dockerApi.buildImage(clusterConfig.getNeo4jImageId(), neo4jDockerPackage.getBytes());
+        }
 
         builder = new CreateContainerBodyWriter();
-        builder.setImage(clusterConfig.getNeo4jId())
+        builder.setImage(clusterConfig.getNeo4jImageId())
                 .buildExposedPorts()
                 .createHostConfig()
                 .bindTcpPort(clusterConfig.getNeo4jPort(), clusterConfig.getPortPrefix() + clusterConfig.getNeo4jPort())
@@ -229,10 +226,12 @@ public class DeployerFacade implements Serializable {
         applicationDockerPackage.setWarFileBytes(bytes);
         applicationDockerPackage.prepareTarStream();
 
-        dockerApi.buildImage(clusterConfig.getWildflyId(), applicationDockerPackage.getBytes());
+        if(!imageExists(clusterConfig.getWildflyImageId()  + ":latest")) {
+            dockerApi.buildImage(clusterConfig.getWildflyImageId(), applicationDockerPackage.getBytes());
+        }
 
         builder = new CreateContainerBodyWriter()
-                .setImage(clusterConfig.getWildflyId())
+                .setImage(clusterConfig.getWildflyImageId())
                 .createHostConfig()
                 .bindTcpPort(clusterConfig.getWfPort(), clusterConfig.getPortPrefix() + clusterConfig.getWfPort())
                 .bindTcpPort(clusterConfig.getWfAdminPort(), clusterConfig.getPortPrefix() + clusterConfig.getWfAdminPort())
@@ -244,6 +243,22 @@ public class DeployerFacade implements Serializable {
 
         logger.finer("Container created:" + containerId);
         dockerApi.startContainer(containerId);
+    }
+
+    boolean imageExists(String imageName){
+        boolean imageExists = dockerApi.listImage().stream()
+                .filter(
+                        img -> img.getRepoTags().stream()
+                                .filter(
+                                        tag -> tag.getName().equals(imageName)
+                                )
+                                .collect(Collectors.toList())
+                                .size() > 0)
+                .collect(Collectors.toList())
+                .size() > 0;
+
+        return imageExists;
+
     }
 
     /**

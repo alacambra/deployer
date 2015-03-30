@@ -121,7 +121,7 @@ public class ClusterConfig {
     }
 
     public String getWildflyImageId() {
-        return "wf" + clusterSeparator + getAppVersion() + clusterSeparator;
+        return "wf" + clusterSeparator + getAppVersion();
     }
 
     public ClusterConfig setWildflyId(String wildflyId) {
