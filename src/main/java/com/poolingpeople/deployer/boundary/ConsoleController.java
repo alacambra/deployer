@@ -6,10 +6,13 @@ import com.poolingpeople.deployer.dockerapi.boundary.DockerEndPoint;
 
 import javax.enterprise.context.RequestScoped;
 import javax.enterprise.event.Event;
+import javax.faces.context.ExternalContext;
+import javax.faces.context.FacesContext;
 import javax.faces.model.DataModel;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.validation.constraints.NotNull;
+import java.io.IOException;
 import java.util.stream.Collectors;
 
 /**
@@ -36,6 +39,13 @@ public class ConsoleController{
 
     private String selectedContainerId = "";
     private StringBuilder out = new StringBuilder();
+
+    public String openLog(String selectedContainerId) {
+
+        setSelectedContainerId(selectedContainerId);
+
+        return "/console/container-logs";
+    }
 
     public void setSelectedContainerId(String selectedContainerId) {
         this.selectedContainerId = selectedContainerId;
@@ -71,16 +81,10 @@ public class ConsoleController{
         return api.listImage();
     }
 
-    public void reloadProxy(){
+    public void reloadProxy() throws IOException {
         facade.createProxy();
     }
 
-    public void updateEndpoint(@NotNull String host, @NotNull String port){
-//        dockerEndPointChangeEvent.fire(new DockerEndPoint(host, Integer.parseInt(port), "http"));
-        endPoint.setHost(host);
-        endPoint.setPort(Integer.parseInt(port));
-        endPoint.setProtocol("http");
-    }
 
 //    public String destroy() {
 //        current = (Category) getItems().getRowData();

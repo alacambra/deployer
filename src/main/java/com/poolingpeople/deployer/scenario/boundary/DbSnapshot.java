@@ -1,12 +1,11 @@
 package com.poolingpeople.deployer.scenario.boundary;
 
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.*;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 import org.apache.commons.compress.utils.IOUtils;
 
-import javax.annotation.PostConstruct;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -20,31 +19,58 @@ public class DbSnapshot {
 
     String bucketName = "poolingpeople";
     String snapshotName;
-    String accessKey;
-    String secretKey;
-    byte[] data;
+    InputStream stream;
 
-    @PostConstruct
-    public void init(){
-        loadAWSCredentials();
-    }
+    public void save() throws IOException {
 
-    public void save(){
+        if(snapshotName == null || snapshotName.equals("")) throw new RuntimeException("no snapshot name is set");
+        if(stream == null) throw new RuntimeException("data is not set");
 
-        if(data == null) throw new RuntimeException("data is not set");
+        // copy stream to tmp file and compress it
+        // this is needed to get the file size
+        File tmpFile = compress(stream);
 
-        AmazonS3 s3client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey));
+        AmazonS3 s3client = new AmazonS3Client(new AWSCredentials());
 
+        // get the total file size
         ObjectMetadata objectMetadata = new ObjectMetadata();
-        objectMetadata.setContentLength(data.length);
+        objectMetadata.setContentLength(tmpFile.length());
 
+        // copy file to s3
         s3client.putObject(
                 new PutObjectRequest(
                         bucketName,
-                        "neo4j-db/" + snapshotName + ".tar",
-                        new ByteArrayInputStream(data),
+                        "neo4j-db/" + snapshotName + ".tar.gz",
+                        new FileInputStream(tmpFile),
                         objectMetadata
                 ));
+
+        // delete temp file
+        tmpFile.delete();
+    }
+
+    public File compress(InputStream stream) throws IOException {
+
+        File compressedFile = File.createTempFile("compressed_snapshot", ".tar.gz");
+        FileOutputStream gzipFileStream = new FileOutputStream(compressedFile);
+        GzipCompressorOutputStream gzippedOut;
+
+        try {
+
+            gzippedOut = new GzipCompressorOutputStream(gzipFileStream);
+
+            // read tar file and compress it
+            IOUtils.copy(stream, gzippedOut, 8 * 1024);
+
+            gzippedOut.close();
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            stream.close();
+        }
+
+        return compressedFile;
     }
 
     public void remove(){
@@ -55,22 +81,23 @@ public class DbSnapshot {
         throw new RuntimeException("not implemented");
     }
 
-    public InputStream fetchSnapshot(){
+    public S3Object fetchSnapshot(){
 
         if("".equals(snapshotName) || snapshotName == null){
             throw new RuntimeException("Snapshot name must be given");
         }
 
-        AmazonS3 s3client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey));
+        AmazonS3 s3client = new AmazonS3Client(new AWSCredentials());
 
         S3Object s3Object = s3client.getObject(
                 new GetObjectRequest(
                         bucketName,
                         "neo4j-db/" + snapshotName));
 
-        InputStream stream = s3Object.getObjectContent();
+        // s3Object.getObjectMetadata().getContentLength();
+        // InputStream stream = s3Object.getObjectContent();
 
-        return stream;
+        return s3Object;
     }
 
     private void persistOnFile(String filePath, InputStream inputStream){
@@ -89,18 +116,8 @@ public class DbSnapshot {
         }
     }
 
-    public DbSnapshot setData(InputStream data) {
-
-        try {
-
-            this.data = IOUtils.toByteArray(data);
-
-        } catch (IOException e) {
-
-            throw new RuntimeException(e);
-
-        }
-
+    public DbSnapshot setStream(InputStream data) {
+        this.stream = data;
         return this;
     }
 
@@ -122,58 +139,19 @@ public class DbSnapshot {
         return snapshotName;
     }
 
-    public byte[] getData() {
-        return data;
-    }
+    public Collection<String> getDbSnapshotsList() {
+        AmazonS3 s3client = new AmazonS3Client(new AWSCredentials());
+        ListObjectsRequest listObjectsRequest = new ListObjectsRequest()
+                .withBucketName(bucketName)
+                .withPrefix("neo4j-db/");
 
-    public Collection<String> getDbSnapshotsList(){
-
-        AmazonS3 s3client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey));
-        List<S3ObjectSummary> objects = s3client.listObjects(bucketName).getObjectSummaries();
+        List<S3ObjectSummary> objects = s3client.listObjects(listObjectsRequest).getObjectSummaries();
 
         if(objects == null) return new ArrayList<>();
 
         return objects.stream().map(o -> o.getKey())
-                .filter(o -> o.contains("neo4j-db") && o.split("/").length > 1)
+                .filter(o -> { String[] path = o.split("/"); return path.length > 1; })
                 .collect(Collectors.toList());
 
-    }
-
-    private void loadAWSCredentials(){
-
-        accessKey = System.getenv("aws-access-key");
-        secretKey = System.getenv("aws-secret-key");
-
-        if( accessKey != null && accessKey != null ) return;
-
-        InputStream akStream = getClass().getClassLoader().getResourceAsStream("aws-access-key");
-        InputStream skStream = getClass().getClassLoader().getResourceAsStream("aws-secret-key");
-
-        if( akStream == null || skStream == null ){
-            throw new RuntimeException("aws keys not found");
-        }
-
-        accessKey = streamToString(akStream);
-        secretKey = streamToString(skStream);
-
-    }
-
-    private String streamToString(InputStream in)  {
-
-        try {
-
-            StringBuilder out = new StringBuilder();
-            BufferedReader br = new BufferedReader(new InputStreamReader(in));
-
-            for (String line = br.readLine(); line != null; line = br.readLine()) {
-                out.append(line);
-            }
-
-            br.close();
-            return out.toString();
-
-        }catch (Exception e){
-            throw new RuntimeException(e);
-        }
     }
 }

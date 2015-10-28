@@ -1,10 +1,12 @@
 package com.poolingpeople.deployer.boundary;
 
 import javax.enterprise.context.SessionScoped;
+import javax.faces.application.FacesMessage;
 import javax.faces.context.ExternalContext;
 import javax.faces.context.FacesContext;
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collection;
@@ -24,8 +26,10 @@ public class DeployerController implements Serializable {
     private String subdomain;
     private String version;
     private String dbSnapshotName;
+    private String appEnvironment = "test";
     private String area;
     private boolean forceDownload; // force download even if cache file was found
+    private boolean overwrite; // overwrites existing cluster if 'subdomain' is already used
 
     public void setSubdomain(String subdomain) {
         this.subdomain = subdomain;
@@ -43,19 +47,33 @@ public class DeployerController implements Serializable {
         return subdomain;
     }
 
+    public String getAppEnvironment() {
+        return appEnvironment;
+    }
+
+    public void setAppEnvironment(String appEnvironment) {
+        this.appEnvironment = appEnvironment;
+    }
+
     public Collection<String> getAvailableVersions() {
         Collection<String> availableVersions = facade.loadVersions(area);
+        // sort results
+        availableVersions = availableVersions.stream().sorted().collect(Collectors.toList());
         // set a default value if nothing is selected
         if(version == null) availableVersions.stream().findAny().ifPresent( element -> version = element);
         return availableVersions;
     }
 
     public Collection<String> getDbSnapshotsList() {
-        return facade.loadDbSnapshots().stream().map(s -> s.split("/")[1]).collect(Collectors.toList());
+        return facade.loadDbSnapshots().stream().map(s -> s.split("/")[1]).sorted().collect(Collectors.toList());
     }
 
-    public void deploy(){
-        facade.deploy(version, subdomain, dbSnapshotName, area, forceDownload);
+    public String deploy() throws IOException {
+        facade.deploy(version, subdomain, dbSnapshotName, area, forceDownload, overwrite, appEnvironment);
+
+        FacesContext context = FacesContext.getCurrentInstance();
+        context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO, "Deployed", "A new cluster has been deployed"));
+        return "/faces/console/clusters-list";
     }
 
     public String getDbSnapshotName() {
@@ -69,7 +87,8 @@ public class DeployerController implements Serializable {
     public String selectArea() {
         Map<String,String> params = FacesContext.getCurrentInstance().getExternalContext().getRequestParameterMap();
         setArea(params.get("area"));
-        return "version-select";
+
+        return "/deployer/version-select.xhtml";
     }
 
     public void setArea(String area) {
@@ -89,6 +108,13 @@ public class DeployerController implements Serializable {
         return forceDownload;
     }
 
+    public void setOverwrite(boolean overwrite) {
+        this.overwrite = overwrite;
+    }
+
+    public boolean getOverwrite() {
+        return overwrite;
+    }
 
     /**
      * Send passed bytes as a download to the user
@@ -112,14 +138,14 @@ public class DeployerController implements Serializable {
     /**
      * download the docker tar file for the selected version
      */
-    public void downloadVersion() {
-        downloadTar(facade.downloadWar(version, area, forceDownload));
+    public void downloadVersion() throws IOException {
+        downloadTar(facade.downloadWar(version, area, appEnvironment, forceDownload));
     }
 
     /**
      * download the docker tar file for the selected database snapshot
      */
-    public void downloadDatabase() {
+    public void downloadDatabase() throws IOException {
         downloadTar(facade.downloadNeo4J(dbSnapshotName));
     }
 }

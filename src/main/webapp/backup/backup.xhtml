@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+
+<ui:composition template="/consoleHeader.xhtml">
+
+    <ui:define name="title">
+        <h:outputText value="Backup settings" />
+    </ui:define>
+
+    <ui:define name="submenu">
+        <p:menuitem value="Reload available containers" actionListener="#{backupController.loadContainers}" ajax="false" />
+        <p:menuitem value="Do backup" actionListener="#{backupController.doBackup}" ajax="false" />
+    </ui:define>
+
+    <ui:define name="body">
+        <h:form>
+
+            <h:outputText escape="false" value="No containers can be set for backup" rendered="#{backupController.containers.rowCount == 0}"/>
+
+            <p:dataTable var="backupInfo" value="#{backupController.containers}"
+                         rendered="#{backupController.containers.rowCount != 0}"
+                         tableStyle="width:auto"
+                         rowStyleClass="#{backupInfo.backup ? 'backup-enabled': 'backup-disabled'}">
+
+                <p:column headerText="ID">
+                    <h:outputText value="#{backupInfo.container.shortId}" />
+                </p:column>
+                <p:column headerText="Names">
+                    <h:outputText value="#{backupInfo.container.names}" escape="false" />
+                </p:column>
+                <p:column headerText="Status">
+                    <h:outputText value="#{backupInfo.container.status}" escape="false" />
+                </p:column>
+                <p:column headerText="">
+                    <p:menuButton value="Options">
+                        <p:menuitem value="Enable backup" actionListener="#{backupController.enableBackup}" ajax="false" icon="ui-icon-arrowthick-1-n" disabled="#{backupInfo.backup}"/>
+                        <p:menuitem value="Disable backup" actionListener="#{backupController.disableBackup}" ajax="false" icon="ui-icon-arrowthick-1-s" disabled="#{!backupInfo.backup}"/>
+                    </p:menuButton>
+                </p:column>
+            </p:dataTable>
+
+        </h:form>
+    </ui:define>
+</ui:composition>
+</html>
+
